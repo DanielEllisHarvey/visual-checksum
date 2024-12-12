@@ -25,8 +25,27 @@ def convert_to_png(ps_filename: str, output_filename: str = "img") -> None:
     img = Image.open(ps_filename).rotate(90, expand=True)
     img.save(output_filename+".png")
 
+def set_bg(colour: str) -> None:
+    turtle.speed(0)
+    turtle.pensize(1)
+    turtle.up()
+    turtle.goto(-1000, 1000)
+    turtle.down()
+    turtle.fillcolor(colour)
+    turtle.color(colour)
+    turtle.begin_fill()
+    for i in range(4):
+        turtle.forward(2000)
+        turtle.right(90)
+    turtle.end_fill()
+    turtle.up()
+
 colours = ["#777777", "#77ff77", "#7777ff", "#ff7777"]
 colours1 = ["#777777", "#ff77ff", "#ffbb77", "#77ffff"]
+
+step = 5
+pen_size = 2
+turtle.speed(0)
 
 def hmac_single(
     data0: str,
@@ -126,17 +145,16 @@ def draw_settings(
     screenX = 2970/2.2
     screenY = 2100/2.2
     turtle.setup(screenX, screenY)
-    turtle.speed(0)
     turtle.hideturtle()
     turtle.up()
     digest_colours = bytes_to_colours(digest0)
     digest_direction = bytes_to_pos(digest1)
     digest_size = len(digest1)
-    turtle.pensize(2)
     sX_16 = screenX/256
     sY_16 = screenY/256
     colour_max = digest_size*4
     m = 0
+    turtle.pensize(pen_size)
     for n in range(0,digest_size):
         if n & 31 == 0: print(n)
         turtle.down()
@@ -144,7 +162,7 @@ def draw_settings(
         for i in range(0,5):
             if not straight_lines: turtle.setheading(digest2[(m)%digest_size]*1.4)
             turtle.color(colours[digest_colours[m%colour_max]])
-            turtle.forward(5)
+            turtle.forward(step)
             m+=1
         turtle.up()
         
@@ -152,8 +170,9 @@ def draw_settings(
         turtle.setx((digest_direction[n][0]*sX_16)-(screenX/2)+10)
         
         if n & 15 == 15:
-            turtle.getscreen().getcanvas().postscript(file=filename)
-            convert_to_png(filename)
+            turtle.getscreen().getcanvas().postscript(file=filename+".ps")
+            convert_to_png(filename+".ps", filename)
 
-    turtle.getscreen().getcanvas().postscript(file=filename)
-    convert_to_png(filename)
+    turtle.getscreen().getcanvas().postscript(file=filename+".ps")
+    convert_to_png(filename+".ps", filename)
+    turtle.reset()
