@@ -11,8 +11,8 @@ def bytes_to_colours(digest: bytes) -> list:
 
 def bytes_to_pos(digest: bytes) -> list:
     result = []
-    for byte in range(len(digest)):
-        result += [[digest[byte-1], digest[byte]]]
+    for byte in range((len(digest) >> 1)-1):
+        result += [[digest[byte*2], digest[(byte*2)+1]]]
     return result
 
 def quick_pbkdf(password: str, salt: str = "genericsalt", iters: int = 100) -> bytes:
@@ -103,11 +103,15 @@ def hmac_cycle(
         straight_lines
     )
 
-def hmac_cycle_expand(data0: str,
-    data1: str,
-    data2: str,
-    data3: str,
-    iters: int,
+def hmac_cycle_expand(
+    data0: str = "",
+    data1: str = "",
+    data2: str = "",
+    data3: str = "",
+    data4: str = "",
+    data5: str = "",
+    iters: int = 2,
+    max_bits: int = 0,
     filename: str = "img.png",
     hmac_pw: str = "",
     hmac_salt: str = "salt123",
@@ -117,14 +121,23 @@ def hmac_cycle_expand(data0: str,
     digest0 = hmac.new(hmac_key, bytes(data0, "utf-8"), hashlib.sha3_512).digest()
     digest0 += hmac.new(hmac_key, bytes(data1, "utf-8")+digest0, hashlib.sha3_512).digest()
     digest1 = hmac.new(hmac_key, bytes(data2, "utf-8")+digest0, hashlib.sha3_512).digest()
-    digest2 = hmac.new(hmac_key, bytes(data3, "utf-8")+digest1, hashlib.sha3_512).digest()
+    digest1 += hmac.new(hmac_key, bytes(data3, "utf-8")+digest1, hashlib.sha3_512).digest()
+    digest2 = hmac.new(hmac_key, bytes(data4, "utf-8")+digest1, hashlib.sha3_512).digest()
+    digest2 += hmac.new(hmac_key, bytes(data5, "utf-8")+digest1, hashlib.sha3_512).digest()
 
     for loop in range(0,iters):
         if loop & 511 == 0: print(loop)
         digest0 += hmac.new(hmac_key, b"digest0seed"+digest2[-128:], hashlib.sha3_512).digest()
         digest0 += hmac.new(hmac_key, b"digest01seed"+digest0[-128:], hashlib.sha3_512).digest()
         digest1 += hmac.new(hmac_key, b"digest1seed"+digest0[-128:], hashlib.sha3_512).digest()
+        digest1 += hmac.new(hmac_key, b"digest11seed"+digest0[-128:], hashlib.sha3_512).digest()
         digest2 += hmac.new(hmac_key, b"digest2seed"+digest1[-128:], hashlib.sha3_512).digest()
+        digest2 += hmac.new(hmac_key, b"digest21seed"+digest1[-128:], hashlib.sha3_512).digest()
+
+    if max_bits != 0:
+        digest0 = digest0[-max_bits:]
+        digest1 = digest1[-max_bits:]
+        digest2 = digest2[-max_bits:]
 
     draw_settings(
         digest0,
@@ -144,31 +157,34 @@ def draw_settings(
     filename = filename.replace(".png", "")
     screenX = 2970/2.2
     screenY = 2100/2.2
+    digest2 += digest0
     turtle.setup(screenX, screenY)
     turtle.hideturtle()
     turtle.up()
-    digest_colours = bytes_to_colours(digest0)
-    digest_direction = bytes_to_pos(digest1)
-    digest_size = len(digest1)
+    digest_colours = bytes_to_colours(digest1)
+    digest_direction = bytes_to_pos(digest0)
+    print(digest_colours)
+    print(len(digest2)/len(digest_direction))
+    digest_size = len(digest_direction)
     sX_16 = screenX/256
     sY_16 = screenY/256
-    colour_max = digest_size*4
     m = 0
+    bytecount = 0
     turtle.pensize(pen_size)
     for n in range(0,digest_size):
-        if n & 31 == 0: print(n)
+        # if n & 31 == 0: print(n)
         turtle.down()
-        if straight_lines: turtle.setheading(digest2[n%digest_size]*1.4)
-        for i in range(0,5):
-            if not straight_lines: turtle.setheading(digest2[(m)%digest_size]*1.4)
-            turtle.color(colours[digest_colours[m%colour_max]])
+        if straight_lines: turtle.setheading(digest2[n]*1.4)
+        for i in range(0,8):
+            if not straight_lines: turtle.setheading(digest2[round(m//2)]*1.4)
+            turtle.color(colours[digest_colours[m]])
             turtle.forward(step)
             m+=1
         turtle.up()
         
         turtle.sety((digest_direction[n][1]*sY_16)-(screenY/2)+10)
         turtle.setx((digest_direction[n][0]*sX_16)-(screenX/2)+10)
-        
+        print(m)
         if n & 15 == 15:
             turtle.getscreen().getcanvas().postscript(file=filename+".ps")
             convert_to_png(filename+".ps", filename)
