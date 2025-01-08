@@ -1,3 +1,5 @@
 imgs/*
 *.png
 *.ps
+*.pyc
+__pycache__/*
